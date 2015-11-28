@@ -8,6 +8,14 @@ module Jekyll
     SLUGIFY_DEFAULT_REGEXP = Regexp.new('[^[:alnum:]]+').freeze
     SLUGIFY_PRETTY_REGEXP = Regexp.new("[^[:alnum:]._~!$&'()+,;=@]+").freeze
 
+    # Takes a slug and turns it into a simple title.
+
+    def titleize_slug(slug)
+      slug.split("-").map! do |val|
+        val.capitalize!
+      end.join(" ")
+    end
+
     # Non-destructive version of deep_merge_hashes! See that method.
     #
     # Returns the merged hashes.

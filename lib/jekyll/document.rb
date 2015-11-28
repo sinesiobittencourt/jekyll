@@ -306,24 +306,21 @@ module Jekyll
     end
 
     def post_read
-      if DATE_FILENAME_MATCHER =~ relative_path
-        m, cats, date, slug, ext = *relative_path.match(DATE_FILENAME_MATCHER)
-        merge_data!({
-          "slug" => slug,
-          "ext"  => ext
-        })
-        merge_data!({"date" => date}) if data['date'].nil? || data['date'].to_i == site.time.to_i
-        data['title'] ||= slug.split('-').select {|w| w.capitalize! || w }.join(' ')
-      elsif DATELESS_FILENAME_MATCHER =~ relative_path
-        m, cats, slug, ext = *relative_path.match(DATELESS_FILENAME_MATCHER)
-        data['title'] ||= slug.split('-').select {|w| w.capitalize! || w }.join(' ')
-      end
-      populate_categories
-      populate_tags
+      if relative_path =~ DATE_FILENAME_MATCHER
+        cats, date, slug, ext = $1, $2, $3, $4
+        merge_data!("date" => date) if !data['date'] || data['date'].to_i == site.time.to_i
+        merge_data!("slug" => slug, "ext"  => ext)
 
-      if generate_excerpt?
-        data['excerpt'] ||= Jekyll::Excerpt.new(self)
+      elsif DATELESS_FILENAME_MATCHER =~ relative_path
+        cats, slug, ext = $1, $2, $3
       end
+
+      # Try to ensure the user gets a title.
+      data["title"] ||= Utils.titleize_slug(slug)
+
+      populate_tags
+      populate_categories
+      generate_excerpt
     end
 
     # Add superdirectories of the special_dir to categories.
@@ -464,7 +461,14 @@ module Jekyll
       data.key?(method.to_s) || super
     end
 
-    # Override of method_missing to check in @data for the key.
+    private # :nodoc:
+    def generate_excerpt
+      if generate_excerpt?
+        data["excerpt"] ||= Jekyll::Excerpt.new(self)
+      end
+    end
+
+    private # :nodoc:
     def method_missing(method, *args, &blck)
       if data.key?(method.to_s)
         Jekyll.logger.warn "Deprecation:", "Document##{method} is now a key in the #data hash."
